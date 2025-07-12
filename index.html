@@ -1,0 +1,320 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Pastebin</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  /* Фон всей страницы */
+  body {
+    margin: 0;
+    padding: 0;
+    background: #d0f0f7; /* светло-бирюзовый */
+    font-family: Arial, sans-serif;
+  }
+
+  /* Белая рамка с отступами по 50px */
+  .container {
+    background: white;
+    margin: 50px;
+    border-radius: 12px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.12);
+    padding: 25px 35px 40px 35px;
+    max-width: calc(100% - 100px);
+    min-height: 600px;
+    box-sizing: border-box;
+  }
+
+  /* Верхний блок с настройками */
+  .settings {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 25px;
+    margin-bottom: 30px;
+    align-items: center;
+  }
+
+  .settings label {
+    font-weight: bold;
+    font-size: 17px;
+    margin-right: 6px;
+  }
+
+  .settings select {
+    font-size: 16px;
+    padding: 8px 12px;
+    border: 1.5px solid #007BFF;
+    border-radius: 6px;
+    min-width: 130px;
+    background: #fff;
+    cursor: pointer;
+    transition: border 0.2s;
+  }
+
+  .settings select:hover {
+    border-color: #0056b3;
+  }
+
+  /* Вкладки */
+  .tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .tabs button {
+    width: 6rem; /* ~6 см, достаточно для слова "Просмотр" */
+    padding: 10px 0;
+    font-weight: bold;
+    font-size: 14px;
+    border: 1.5px solid #007BFF;
+    border-bottom: none;
+    background: white;
+    color: #007BFF;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    transition: background 0.3s, color 0.3s;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .tabs button.active {
+    background: #007BFF;
+    color: white;
+  }
+
+  /* Область ввода и превью */
+  textarea, #preview {
+    width: 100%;
+    min-height: 450px;
+    border-radius: 0 0 10px 10px;
+    border: 1.8px solid #007BFF;
+    padding: 18px;
+    font-size: 16px;
+    font-family: monospace;
+    box-sizing: border-box;
+    resize: vertical;
+    background: white;
+    overflow-wrap: break-word;
+  }
+
+  #preview {
+    display: none;
+  }
+
+  /* Кнопка Создать */
+  #createBtn {
+    margin-top: 12px;
+    padding: 10px 32px; /* было 14px 48px */
+    font-size: 16px;     /* было 20px */
+    background: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 8px;  /* чуть меньше скругление */
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+
+  #createBtn:hover {
+    background: #0056b3;
+  }
+
+  /* Блок со ссылкой */
+  #linkBox {
+    margin-top: 30px;
+    display: none;
+  }
+
+  #linkBox p {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+
+  #pasteLink {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 1.5px solid #ccc;
+    background: #f5f5f5;
+    user-select: all;
+    cursor: pointer;
+  }
+
+  #footerText {
+  max-width: 600px;
+  margin-left: auto;
+  margin-top: 45px;
+  font-size: 15px;
+  color: #444;
+  line-height: 1.5;
+  user-select: none;
+  padding-right: 15px;
+  padding-left: 15px;
+  text-align: left; 
+  box-sizing: border-box;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+#footerText p {
+  margin: 0;
+  text-align: left;
+  font-size: 15px;
+  color: #444;
+  line-height: 1.5;
+}
+
+  #footerText p.no-wrap {
+    white-space: nowrap; /* первая строка без переноса */
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Мобильная адаптивность */
+  @media(max-width: 700px) {
+    .settings {
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .settings select {
+      min-width: 100%;
+    }
+
+    .container {
+      margin: 30px 15px;
+      padding: 20px 20px 35px 20px;
+    }
+
+    .plaintext {
+      font-size: 15px;
+      padding: 12px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="settings">
+    <label for="language">Разметка:</label>
+    <select id="language">
+      <option value="markdown" selected>Markdown</option>
+      <option value="plaintext">Plain Text</option>
+    </select>
+
+    <label for="lang">Язык:</label>
+    <select id="lang">
+      <option value="ru" selected>Русский</option>
+      <option value="en">English</option>
+      <option value="es">Español</option>
+      <option value="fr">Français</option>
+      <option value="de">Deutsch</option>
+    </select>
+
+    <label for="expire">Срок действия:</label>
+    <select id="expire">
+      <option value="never" selected>Никогда</option>
+      <option value="1day">1 день</option>
+      <option value="1week">1 неделя</option>
+      <option value="1month">1 месяц</option>
+    </select>
+  </div>
+
+  <div class="tabs">
+    <button id="tab-edit" class="active">Текст</button>
+    <button id="tab-preview">Просмотр</button>
+  </div>
+
+  <textarea id="input" placeholder="Можно вставлять ссылки, картинки с Markdown"></textarea>
+  <div id="preview"></div>
+
+  <button id="createBtn">Создать</button>
+
+  <div id="linkBox">
+    <p>Ссылка на пасту:</p>
+    <input type="text" id="pasteLink" readonly onclick="this.select();" />
+  </div>
+
+  <div id="footerText">
+    <p class="no-wrap">Этот пастебин поддерживает Markdown-разметку и позволяет вставлять ссылки на картинки.</p>
+    <p>Вы можете выбрать язык разметки, язык интерфейса и срок хранения пасты.</p>
+    <p>После создания вы получите уникальную ссылку для просмотра вашей пасты.</p>
+  </div>
+
+</div>
+
+<script>
+  const tabEdit = document.getElementById('tab-edit');
+  const tabPreview = document.getElementById('tab-preview');
+  const input = document.getElementById('input');
+  const preview = document.getElementById('preview');
+  const languageSelect = document.getElementById('language');
+
+  // 🔹 Делаем ссылки активными в режиме Plain Text
+  function linkify(text) {
+    const urlPattern = /(\bhttps?:\/\/[^\s<>"]+[^\s<>"'.])/gi;
+    return text.replace(urlPattern, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  }
+
+  // 🔹 Вкладка "Текст"
+  tabEdit.addEventListener('click', () => {
+    tabEdit.classList.add('active');
+    tabPreview.classList.remove('active');
+    input.style.display = 'block';
+    preview.style.display = 'none';
+  });
+
+  // 🔹 Вкладка "Просмотр"
+  tabPreview.addEventListener('click', () => {
+    tabPreview.classList.add('active');
+    tabEdit.classList.remove('active');
+    const text = input.value;
+
+    if (languageSelect.value === 'markdown') {
+      preview.innerHTML = marked.parse(text);
+
+      // 🔹 Все ссылки в Markdown — новая вкладка
+      preview.querySelectorAll('a').forEach(link => {
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+      });
+    } else {
+      // 🔹 Plain Text — тоже активные ссылки
+      preview.innerHTML = linkify(text).replace(/\n/g, '<br>');
+    }
+
+    input.style.display = 'none';
+    preview.style.display = 'block';
+  });
+
+  // 🔹 Кнопка "Создать"
+  document.getElementById('createBtn').addEventListener('click', () => {
+    const text = input.value.trim();
+    if (!text) {
+      alert('Введите текст!');
+      return;
+    }
+    const encoded = encodeURIComponent(text);
+    const url = `${location.origin}${location.pathname}#${encoded}`;
+    document.getElementById('pasteLink').value = url;
+    document.getElementById('linkBox').style.display = 'block';
+  });
+
+  // 🔹 Автозагрузка текста из URL при открытии
+  window.addEventListener('load', () => {
+    if (location.hash.length > 1) {
+      const hashText = decodeURIComponent(location.hash.substring(1));
+      input.value = hashText;
+      tabEdit.click();
+    }
+  });
+</script>
+
+</body>
+</html>
